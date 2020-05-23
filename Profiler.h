@@ -203,6 +203,11 @@ namespace perf
 			OnEnd();
 		}
 
+		/*
+		 * Run with `valgrind --tool=callgrind --instr-atstart=no ./binary`
+		 * This will produce an output such as callgrind.out.PID.1
+		 * Analyse the output with kcachegrind
+		 */
 		inline void Instrument() noexcept
 		{
 			#ifndef HAS_VALGRIND

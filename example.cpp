@@ -86,5 +86,10 @@ int main()
 	profiler2.PrintPercentilesCsv();
 	profiler2.PrintPythonPlotInstructions(true, true);
 
+#ifdef HAS_VALGRIND
+	// run with `valgrind --tool=callgrind --instr-atstart=no ./example`
+	profiler2.Instrument();
+#endif
+	
 	return 0;
 }
