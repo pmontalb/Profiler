@@ -270,7 +270,7 @@ namespace perf
 		inline std::string AverageToString() const noexcept { return "Average: " + std::to_string(_performance.GetAverage()); }
 		inline void PrintAverage() const noexcept { std::cout << AverageToString() << std::endl; }
 
-		inline std::string ToPythonPlot(bool show, bool includeRawObservations = false) const noexcept
+		inline std::string ToPythonPlot(bool show, const std::string& label = "", bool includeRawObservations = false) const noexcept
 		{
 			const auto& percentiles = _performance.GetPercentiles();
 			const auto& rawObservations = _performance.GetRawObservations();
@@ -304,7 +304,7 @@ namespace perf
 				ret += "ax.set_ylim(ymax=np.ceil(max_freq/10)*10 if max_freq%10 else max_freq+10);";
 
 				ret += "ax = fig.add_subplot(122);";
-				ret += "ax.plot(percentiles, percentileValues);";
+				ret += "ax.plot(percentiles, percentileValues, label='" + label + "');";
 				ret += "ax.grid(alpha=0.75);";
 			}
 			else
@@ -320,7 +320,7 @@ namespace perf
 
 			return ret;
 		}
-		inline void PrintPythonPlotInstructions(bool show, bool includeRawObservations = false) { std::cout << ToPythonPlot(show, includeRawObservations) << std::endl; }
+		inline void PrintPythonPlotInstructions(bool show, const std::string& label = "", bool includeRawObservations = false) { std::cout << ToPythonPlot(show, label, includeRawObservations) << std::endl; }
 
 	private:
 		inline double GetTimeScaleMultiplier() const noexcept
