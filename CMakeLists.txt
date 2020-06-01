@@ -3,6 +3,7 @@ include_guard()
 cmake_minimum_required(VERSION 3.14)
 project(Profiler)
 
+set(FLAGS_CPP_STANDARD 17)  # this is needed for testing parallel stl
 include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
 
 option(USE_VALGRIND ON)
@@ -41,6 +42,19 @@ create_executable(
 		example.cpp
 	DEPENDENCIES
 		Profiler
+	PRIVATE_INCLUDE_DIRECTORIES
+		.
+)
+
+create_executable(
+	NAME
+		exampleStl
+	SOURCES
+		exampleStl.cpp
+	DEPENDENCIES
+		Profiler
+	SYSTEM_DEPENDENCIES
+		tbb  # this needs TBB >= 2018, so on Ubuntu <= 18.04 you need to install the latest TBB
 	PRIVATE_INCLUDE_DIRECTORIES
 		.
 )

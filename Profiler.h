@@ -306,13 +306,15 @@ namespace perf
 				ret += "ax = fig.add_subplot(122);";
 				ret += "ax.plot(percentiles, percentileValues, label='" + label + "');";
 				ret += "ax.grid(alpha=0.75);";
+				ret += "ax.legend(loc='best')";
 			}
 			else
 			{
 				ret += "fig = plt.figure(1);";
 				ret += "ax = fig.add_subplot(111);";
-				ret += "ax.plot(percentiles, percentileValues);";
+				ret += "ax.plot(percentiles, percentileValues, label='" + label + "');";
 				ret += "ax.grid(alpha=0.75);";
+				ret += "ax.legend(loc='lower right');";
 			}
 
 			if (show)
