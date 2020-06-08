@@ -267,7 +267,13 @@ namespace perf
 		}
 		inline void PrintPercentilesCsv() const noexcept { std::cout << PercentilesToCsv() << std::endl; }
 
-		inline std::string AverageToString() const noexcept { return "Average: " + std::to_string(_performance.GetAverage()); }
+		inline std::string AverageToString() const noexcept
+		{
+			const double mid = _performance.GetAverage();
+			const double lo = mid - _performance.GetStandardDeviation();
+			const double hi = mid + _performance.GetStandardDeviation();
+			return std::string("Average: ") + std::to_string(mid) + "[ " + std::to_string(lo) + ", " + std::to_string(hi) + " ]";
+		}
 		inline void PrintAverage() const noexcept { std::cout << AverageToString() << std::endl; }
 
 		inline std::string ToPythonPlot(bool show, const std::string& label = "", bool includeRawObservations = false) const noexcept
