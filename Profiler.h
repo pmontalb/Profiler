@@ -1,160 +1,109 @@
 
 #pragma once
 
-#include <StopWatch.h>
+#include "StopWatch.h"
 
 #ifdef HAS_VALGRIND
 	#include <valgrind/callgrind.h>
 #endif
 
-#include <cstddef>
-#include <vector>
+#include <algorithm>
 #include <array>
 #include <cmath>
-#include <algorithm>
+#include <cstddef>
 #include <iostream>
+#include <vector>
 
 namespace perf
 {
-	namespace detail
-	{
-		static constexpr size_t nPercentiles = 13;
-		using Percentiles = std::array<double, nPercentiles>;
-		static constexpr Percentiles percentiles = {{ 1.0, 5.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 95.0, 99.0, }};
-		static constexpr size_t medianIndex = { 6 };
-
-		class Performance
-		{
-		public:
-			explicit Performance(size_t nObservations) noexcept
-			{
-				Reset(nObservations);
-			}
-
-			inline void Reset(size_t nObservations) noexcept
-			{
-				_observations.clear();
-				_observations.reserve(nObservations);
-
-				_average = 0.0;
-				_standardDeviation = 0.0;
-				_percentiles.fill(0.0);
-			}
-
-			inline void Register(double observation) noexcept { _observations.emplace_back(observation); }
-
-			inline void ComputeAnalytics() noexcept
-			{
-				ComputePercentiles();
-				ComputeAverage();
-				ComputeStandardDeviation();
-			}
-
-			inline auto GetAverage() const noexcept { return _average; }
-			inline auto GetStandardDeviation() const noexcept { return _standardDeviation; }
-			inline auto GetMedian() const noexcept { return _percentiles[medianIndex]; }
-			inline const auto& GetPercentiles() const noexcept { return _percentiles; }
-			inline const auto& GetRawObservations() const noexcept { return _observations; }
-
-			inline std::string ToString(const bool printRawObservations = false) const noexcept
-			{
-				std::string ret {};
-
-				ret += "Average           : \t" + std::to_string(_average) + "\n";
-				ret += "Median            : \t" + std::to_string(GetMedian()) + "\n";
-				ret += "Standard Deviation: \t" + std::to_string(_standardDeviation) + "\n";
-				ret += "Percentiles:\n-----------------\n";
-				for (size_t i = 0; i < nPercentiles; ++i)
-					ret += std::to_string(percentiles[i]) + "\t%  :\t" + std::to_string(_percentiles[i]) + "\n";
-				ret += "-----------------\n";
-				if (printRawObservations)
-				{
-					ret += "Observations:\n-----------------\n";
-					for (size_t i = 0; i < _observations.size(); ++i)
-						ret += std::to_string(i) + "  \t:\t" + std::to_string(_observations[i]) + "\n";
-					ret += "-----------------\n";
-				}
-
-				return ret;
-			}
-			inline void Print(const bool printRawObservations = false) const noexcept { std::cout << ToString(printRawObservations) << std::endl; }
-
-		private:
-			inline void ComputeAverage() noexcept
-			{
-				_average = 0.0;
-				for (auto observation: _observations)
-					_average += observation;
-				_average /= static_cast<double>(_observations.size());
-			}
-
-			inline void ComputeStandardDeviation() noexcept
-			{
-				_standardDeviation = 0.0;
-				for (auto observation: _observations)
-					_standardDeviation += observation * observation;
-				_standardDeviation /= static_cast<double>(_observations.size());
-				_standardDeviation -= _average * _average;
-				_standardDeviation = std::sqrt(_standardDeviation);
-			}
-
-			inline void ComputePercentiles() noexcept
-			{
-				std::sort(_observations.begin(), _observations.end());
-				for (size_t i = 0; i < nPercentiles; ++i)
-				{
-					const double fractionalIndex = (percentiles[i] / 100.0) * (static_cast<double>(_observations.size()) - 1.0);
-					const auto observationIndex = static_cast<size_t>(fractionalIndex);
-
-					if (observationIndex < _observations.size() - 1)
-					{
-						const double weight = fractionalIndex - static_cast<double>(observationIndex);
-						_percentiles[i] = _observations[observationIndex] * (1.0 - weight) + weight * _observations[observationIndex + 1];
-					}
-					else
-						_percentiles[i] = _observations[observationIndex];
-				}
-			}
-
-		private:
-			std::vector<double> _observations {};
-			Percentiles _percentiles {};
-
-			double _average = 0.0;
-			double _standardDeviation = 0.0;
-		};
-	}
-
 	enum class TimeScale
 	{
 		Nanoseconds,
 		Microseconds,
 		Milliseconds,
 		Seconds,
+		COUNT,
 	};
+
 	static inline std::string ToString(const TimeScale timeScale) noexcept
 	{
 		switch (timeScale)
 		{
 			case TimeScale::Nanoseconds:
-				return "Nanoseconds";
+				return "ns";
 			case TimeScale::Microseconds:
-				return "Microseconds";
+				return "us";
 			case TimeScale::Milliseconds:
-				return "Milliseconds";
+				return "ms";
 			case TimeScale::Seconds:
-				return "Seconds";
+				return "s";
 			default:
 				return "?";
 		}
 	}
+
+	namespace detail
+	{
+		static constexpr size_t nPercentiles = 13;
+		using Percentiles = std::array<double, nPercentiles>;
+		static constexpr Percentiles percentiles = { {
+			1.0,
+			5.0,
+			10.0,
+			20.0,
+			30.0,
+			40.0,
+			50.0,
+			60.0,
+			70.0,
+			80.0,
+			90.0,
+			95.0,
+			99.0,
+		} };
+		static constexpr size_t medianIndex = { 6 };
+
+		class Performance
+		{
+		public:
+			explicit Performance(size_t nObservations) noexcept { Reset(nObservations); }
+
+			void Reset(size_t nObservations) noexcept;
+
+			inline void Register(double observation) noexcept { _observations.emplace_back(observation); }
+
+			void ComputeAnalytics() noexcept;
+
+			inline auto GetAverage() const noexcept { return _average * _timeScaleMultiplier; }
+			inline auto GetStandardDeviation() const noexcept { return _standardDeviation * _timeScaleMultiplier; }
+			inline auto GetMedian() const noexcept { return _percentiles[medianIndex] * _timeScaleMultiplier; }
+			inline const auto& GetPercentiles() const noexcept { return _percentiles; }
+			inline const auto& GetRawObservations() const noexcept { return _observations; }
+
+			std::string ToString(const bool printPercentiles = false, const bool printRawObservations = false) const noexcept;
+			inline void Print(const bool printRawObservations = false) const noexcept { std::cout << ToString(printRawObservations) << std::endl; }
+
+		private:
+			void ComputeAverage() noexcept;
+			void ComputeStandardDeviation() noexcept;
+			void ComputePercentiles() noexcept;
+			void ComputeMostFrequentTimeScale() noexcept;
+		private:
+			std::vector<double> _observations {};
+			Percentiles _percentiles {};
+
+			double _average = 0.0;
+			double _standardDeviation = 0.0;
+			TimeScale _scale = TimeScale::Nanoseconds;
+			double _timeScaleMultiplier = 0.0;
+		};
+	}	 // namespace detail
 
 	struct Config
 	{
 		size_t nIterations = 100;
 		size_t nIterationsPerCycle = 1;
 		size_t nWarmUpIterations = 1;
-		TimeScale timeScale = TimeScale::Nanoseconds;
 
 		inline std::string ToString() const noexcept
 		{
@@ -163,7 +112,6 @@ namespace perf
 			ret += "#Iterations           : \t" + std::to_string(nIterations) + "\n";
 			ret += "#Iterations Per Cycle : \t" + std::to_string(nIterationsPerCycle) + "\n";
 			ret += "#WarmUp Iterations    : \t" + std::to_string(nWarmUpIterations) + "\n";
-			ret += "TimeScale             : \t" + ::perf::ToString(timeScale) + "\n";
 
 			return ret;
 		}
@@ -174,10 +122,7 @@ namespace perf
 	class Profiler
 	{
 	public:
-		explicit Profiler(const ConfigImpl& config) noexcept
-			: _config(config)
-		{
-		}
+		explicit Profiler(const ConfigImpl& config) noexcept : _config(config) {}
 
 		inline void Profile() noexcept
 		{
@@ -187,8 +132,7 @@ namespace perf
 			for (size_t i = 0; i < _config.nWarmUpIterations; ++i)
 				static_cast<ProfilerImpl*>(this)->RunImpl();
 
-			Stopwatch stopWatch(false);
-			const auto timeScaleMultiplier = GetTimeScaleMultiplier();
+			sw::StopWatch stopWatch(false);
 			for (size_t i = 0; i < _config.nIterations; ++i)
 			{
 				stopWatch.Start();
@@ -196,8 +140,8 @@ namespace perf
 					static_cast<ProfilerImpl*>(this)->RunImpl();
 				stopWatch.Stop();
 
-				const auto elapsedTime = static_cast<double>(stopWatch.GetNanoSeconds()) / static_cast<double>(_config.nIterationsPerCycle);
-				_performance.Register(elapsedTime * timeScaleMultiplier);
+				const auto elapsedTime = stopWatch.GetNanoSeconds() / static_cast<double>(_config.nIterationsPerCycle);
+				_performance.Register(elapsedTime);
 			}
 
 			OnEnd();
@@ -210,16 +154,16 @@ namespace perf
 		 */
 		inline void Instrument() noexcept
 		{
-			#ifndef HAS_VALGRIND
-				std::abort();
-			#else
-				CALLGRIND_START_INSTRUMENTATION;
+#ifndef HAS_VALGRIND
+			std::abort();
+#else
+			CALLGRIND_START_INSTRUMENTATION;
 
-				static_cast<ProfilerImpl*>(this)->RunImpl();
+			static_cast<ProfilerImpl*>(this)->RunImpl();
 
-				CALLGRIND_STOP_INSTRUMENTATION;
-                CALLGRIND_DUMP_STATS;
-			#endif
+			CALLGRIND_STOP_INSTRUMENTATION;
+			CALLGRIND_DUMP_STATS;
+#endif
 		}
 
 		inline void OnStart() noexcept
@@ -250,7 +194,7 @@ namespace perf
 
 		inline std::string PercentilesToCsv(const bool includePercentileKeys = false) const noexcept
 		{
-			std::string ret{};
+			std::string ret {};
 
 			if (includePercentileKeys)
 			{
@@ -328,29 +272,15 @@ namespace perf
 
 			return ret;
 		}
-		inline void PrintPythonPlotInstructions(bool show, const std::string& label = "", bool includeRawObservations = false) { std::cout << ToPythonPlot(show, label, includeRawObservations) << std::endl; }
-
-	private:
-		inline double GetTimeScaleMultiplier() const noexcept
+		inline void PrintPythonPlotInstructions(bool show, const std::string& label = "", bool includeRawObservations = false)
 		{
-			switch (_config.timeScale)
-			{
-				case TimeScale::Nanoseconds:
-					return 1.0;
-				case TimeScale::Microseconds:
-					return 1e-3;
-				case TimeScale::Milliseconds:
-					return 1e-6;
-				case TimeScale::Seconds:
-					return 1e-9;
-				default:
-					return std::numeric_limits<double>::quiet_NaN();
-			}
+			std::cout << ToPythonPlot(show, label, includeRawObservations) << std::endl;
 		}
 
 	protected:
 		const ConfigImpl _config;
+
 	private:
 		detail::Performance _performance { _config.nIterations };
 	};
-}
+}	 // namespace perf

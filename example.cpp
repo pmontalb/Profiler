@@ -70,7 +70,6 @@ int main()
 	config1.nIterations = 10;
 	config1.nIterationsPerCycle = 1;
 	config1.nWarmUpIterations = 1;
-	config1.timeScale = perf::TimeScale::Microseconds;
 	Example1 profiler1(config1);
 	profiler1.Profile();
 	profiler1.Print();
@@ -79,7 +78,6 @@ int main()
 	config2.nIterations = 300;
 	config2.nIterationsPerCycle = 1;
 	config2.nWarmUpIterations = 10;
-	config2.timeScale = perf::TimeScale::Microseconds;
 	Example2 profiler2(config2);
 	profiler2.Profile();
 	profiler2.AverageToString();

@@ -39,7 +39,6 @@ int main()
 	config.nIterations = 10000;
 	config.nIterationsPerCycle = 5;
 	config.nWarmUpIterations = 10;
-	config.timeScale = perf::TimeScale::Microseconds;
 	StlProfiler<std::vector<double>> profiler(config);
 
 	std::random_device randomDevice {};

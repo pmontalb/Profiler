@@ -25,15 +25,23 @@ endif()
 
 create_library(
 	NAME
+		StopWatch
+	SOURCES
+		StopWatch.cpp
+)
+
+create_library(
+	NAME
 		Profiler
 	SOURCES
-		Profiler.h StopWatch.h
+		Profiler.cpp
+	DEPENDENCIES
+		StopWatch
 	PUBLIC_INCLUDE_DIRECTORIES
 		${VALGRIND_HEADERS} .
 	PUBLIC_COMPILE_DEFINITIONS
 		${VALGRIND_DEFINE}
 )
-set_target_properties(Profiler PROPERTIES LINKER_LANGUAGE CXX)
 
 create_executable(
 	NAME
