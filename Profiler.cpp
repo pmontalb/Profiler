@@ -21,6 +21,20 @@ namespace perf::detail
 		ComputeMostFrequentTimeScale();
 	}
 
+	nlohmann::json Performance::ToJson() const noexcept
+	{
+		nlohmann::json ret;
+		ret["scale"] = perf::ToString(_scale);
+		ret["average"] = GetAverage();
+		ret["median"] = GetMedian();
+		ret["stdev"] = GetStandardDeviation();
+		ret["percentiles"] = {};
+		for (size_t i = 0; i < nPercentiles; ++i)
+			ret["percentiles"][std::to_string(percentiles[i])] = _percentiles[i] * _timeScaleMultiplier;
+		ret["observations"] = _observations;
+
+		return ret;
+	}
 	std::string Performance::ToString(const bool printPercentiles, const bool printRawObservations) const noexcept
 	{
 		std::string ret {};
@@ -99,7 +113,7 @@ namespace perf::detail
 		}
 
 		const auto distance = std::distance(counters.begin(), std::max_element(counters.begin(), counters.end()));
-		assert(distance > 0);
+		assert(distance >= 0);
 		assert(distance < static_cast<int>(TimeScale::COUNT));
 		_scale = static_cast<TimeScale>(distance);
 		switch (_scale)

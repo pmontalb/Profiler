@@ -7,6 +7,8 @@
 	#include <valgrind/callgrind.h>
 #endif
 
+#include "nlohmann/json.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -80,6 +82,7 @@ namespace perf
 			inline const auto& GetPercentiles() const noexcept { return _percentiles; }
 			inline const auto& GetRawObservations() const noexcept { return _observations; }
 
+			nlohmann::json ToJson() const noexcept;
 			std::string ToString(const bool printPercentiles = false, const bool printRawObservations = false) const noexcept;
 			inline void Print(const bool printRawObservations = false) const noexcept { std::cout << ToString(printRawObservations) << std::endl; }
 
@@ -135,10 +138,14 @@ namespace perf
 			sw::StopWatch stopWatch(false);
 			for (size_t i = 0; i < _config.nIterations; ++i)
 			{
+				static_cast<ProfilerImpl*>(this)->PreRunImpl();
+
 				stopWatch.Start();
 				for (size_t j = 0; j < _config.nIterationsPerCycle; ++j)
 					static_cast<ProfilerImpl*>(this)->RunImpl();
 				stopWatch.Stop();
+
+				static_cast<ProfilerImpl*>(this)->PostRunImpl();
 
 				const auto elapsedTime = stopWatch.GetNanoSeconds() / static_cast<double>(_config.nIterationsPerCycle);
 				_performance.Register(elapsedTime);
@@ -183,6 +190,11 @@ namespace perf
 		inline double GetStandardDeviation() const noexcept { return GetPerformance().GetStandardDeviation(); }
 		inline const auto& GetPercentiles() const noexcept { return GetPerformance().GetPercentiles(); }
 		inline const auto& GetRawObservations() const noexcept { return GetPerformance().GetRawObservations(); }
+
+		inline nlohmann::json ToJson() const noexcept
+		{
+			return _performance.ToJson();
+		}
 
 		inline std::string ToString() const noexcept
 		{

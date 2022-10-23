@@ -8,6 +8,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
 
 option(USE_VALGRIND ON)
 
+add_subdirectory(json ${CMAKE_BINARY_DIR}/Profiler/json EXCLUDE_FROM_ALL)
+
 set(VALGRIND_HEADERS "")
 mark_as_advanced(VALGRIND_HEADERS)
 set(VALGRIND_DEFINE "")
@@ -38,7 +40,7 @@ create_library(
 	DEPENDENCIES
 		StopWatch
 	PUBLIC_INCLUDE_DIRECTORIES
-		${VALGRIND_HEADERS} .
+		${VALGRIND_HEADERS} . json/single_include
 	PUBLIC_COMPILE_DEFINITIONS
 		${VALGRIND_DEFINE}
 )
