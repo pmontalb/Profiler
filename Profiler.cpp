@@ -24,13 +24,13 @@ namespace perf::detail
 	nlohmann::json Performance::ToJson() const noexcept
 	{
 		nlohmann::json ret;
-		ret["scale"] = perf::ToString(_scale);
-		ret["average"] = GetAverage();
-		ret["median"] = GetMedian();
-		ret["stdev"] = GetStandardDeviation();
+		ret["scale"] = perf::ToString(TimeScale::Nanoseconds);
+		ret["average"] = _average;
+		ret["median"] = _percentiles[medianIndex];
+		ret["stdev"] = _standardDeviation;
 		ret["percentiles"] = {};
 		for (size_t i = 0; i < nPercentiles; ++i)
-			ret["percentiles"][std::to_string(percentiles[i])] = _percentiles[i] * _timeScaleMultiplier;
+			ret["percentiles"][std::to_string(percentiles[i])] = _percentiles[i];
 		ret["observations"] = _observations;
 
 		return ret;
