@@ -97,8 +97,10 @@ namespace perf
 		VtuneScope& operator=(const VtuneScope&) = delete;
 
 	private:
+#ifdef HAS_VTUNE
 		void* _domain = nullptr;
 		void* _handle = nullptr;
+#endif
 	};
 
 	enum class TimeScale

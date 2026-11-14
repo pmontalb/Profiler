@@ -353,7 +353,7 @@ namespace perf
 		IGNORE_WARNING_POP()
 	}
 #else
-	VtuneScope::VtuneScope(const char*, const char*) noexcept = default;
+	VtuneScope::VtuneScope(const char*, const char*) noexcept {}
 #endif
 
 	VtuneScope::~VtuneScope() noexcept

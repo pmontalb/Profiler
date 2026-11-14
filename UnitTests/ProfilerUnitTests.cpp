@@ -102,8 +102,10 @@ TEST(ProfilerTest, ZeroIterationsHandledSafelyWithoutNaNOrCrash)
 	EXPECT_DOUBLE_EQ(profiler.GetStandardDeviation(), 0.0);
 	EXPECT_DOUBLE_EQ(profiler.GetMedian(), 0.0);
 	EXPECT_EQ(profiler.GetTimeScale(), perf::TimeScale::Nanoseconds);
+#if !defined(__FAST_MATH__) && (!defined(__FINITE_MATH_ONLY__) || __FINITE_MATH_ONLY__ == 0)
 	EXPECT_FALSE(std::isnan(profiler.GetAverage()));
 	EXPECT_FALSE(std::isnan(profiler.GetStandardDeviation()));
+#endif
 }
 
 TEST(PerformanceTest, ConstantObservationsYieldZeroStdDevWithoutNaN)
@@ -117,7 +119,9 @@ TEST(PerformanceTest, ConstantObservationsYieldZeroStdDevWithoutNaN)
 	EXPECT_NEAR(performance.GetAverage(), 12.3456789, 1e-12);
 	EXPECT_NEAR(performance.GetMedian(), 12.3456789, 1e-12);
 	EXPECT_DOUBLE_EQ(performance.GetStandardDeviation(), 0.0);
+#if !defined(__FAST_MATH__) && (!defined(__FINITE_MATH_ONLY__) || __FINITE_MATH_ONLY__ == 0)
 	EXPECT_FALSE(std::isnan(performance.GetStandardDeviation()));
+#endif
 }
 
 TEST(PerformanceTest, PreservesChronologicalOrderAndComputesExactStatistics)
