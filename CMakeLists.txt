@@ -1,35 +1,61 @@
 include_guard()
 
-cmake_minimum_required(VERSION 3.14)
-project(Profiler)
+cmake_minimum_required(VERSION 3.28)
+project(Profiler LANGUAGES CXX)
 
-set(FLAGS_CPP_STANDARD 17)  # this is needed for testing parallel stl
-include(${CMAKE_SOURCE_DIR}/cmake/All.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/All.cmake)
 
-option(USE_VALGRIND ON)
+option(USE_VALGRIND "Enable Valgrind Callgrind instrumentation support" OFF)
+option(USE_VTUNE "Enable Intel VTune ITT instrumentation support" OFF)
 
-add_subdirectory(json ${CMAKE_BINARY_DIR}/Profiler/json EXCLUDE_FROM_ALL)
+set(_profiler_sys_includes "${CMAKE_CURRENT_SOURCE_DIR}/json/single_include")
+set(_profiler_compile_defs "")
+set(_profiler_sys_deps "")
 
-set(VALGRIND_HEADERS "")
-mark_as_advanced(VALGRIND_HEADERS)
-set(VALGRIND_DEFINE "")
-mark_as_advanced(VALGRIND_DEFINE)
 if (USE_VALGRIND)
+	find_path(VALGRIND_INCLUDE_DIR NAMES valgrind/callgrind.h)
 	if (NOT VALGRIND_INCLUDE_DIR)
-		message(FATAL_ERROR "valgrind not found")
-		return()
+		message(FATAL_ERROR "USE_VALGRIND is ON, but valgrind/callgrind.h was not found")
 	endif()
-	message(STATUS "compiling with valgrind support using ${VALGRIND_PROGRAM} and including ${VALGRIND_INCLUDE_DIR}")
-	set(VALGRIND_HEADERS ${VALGRIND_INCLUDE_DIR})
-	set(VALGRIND_DEFINE HAS_VALGRIND)
+	message(STATUS "Compiling with Valgrind Callgrind support using ${VALGRIND_INCLUDE_DIR}")
+	list(APPEND _profiler_sys_includes "${VALGRIND_INCLUDE_DIR}")
+	list(APPEND _profiler_compile_defs "HAS_VALGRIND")
 endif()
 
+if (USE_VTUNE)
+	find_package(Threads REQUIRED)
+	find_path(ITTNOTIFY_INCLUDE_DIR
+		NAMES ittnotify.h
+		PATHS
+			ENV VTUNE_PROFILER_DIR
+			ENV INTEL_ONEAPI_ROOT
+			/opt/intel/oneapi/vtune/latest
+		PATH_SUFFIXES include
+	)
+	find_library(ITTNOTIFY_LIBRARY
+		NAMES ittnotify
+		PATHS
+			ENV VTUNE_PROFILER_DIR
+			ENV INTEL_ONEAPI_ROOT
+			/opt/intel/oneapi/vtune/latest
+		PATH_SUFFIXES lib64 lib
+	)
+	if (NOT ITTNOTIFY_INCLUDE_DIR OR NOT ITTNOTIFY_LIBRARY)
+		message(FATAL_ERROR "USE_VTUNE is ON, but ittnotify.h or libittnotify was not found")
+	endif()
+	message(STATUS "Compiling with Intel VTune ITT support using ${ITTNOTIFY_INCLUDE_DIR} and ${ITTNOTIFY_LIBRARY}")
+	list(APPEND _profiler_sys_includes "${ITTNOTIFY_INCLUDE_DIR}")
+	list(APPEND _profiler_compile_defs "HAS_VTUNE")
+	list(APPEND _profiler_sys_deps "${ITTNOTIFY_LIBRARY}" "${CMAKE_DL_LIBS}" Threads::Threads)
+endif()
 
 create_library(
 	NAME
 		StopWatch
 	SOURCES
 		StopWatch.cpp
+	PUBLIC_INCLUDE_DIRECTORIES
+		"${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 create_library(
@@ -39,32 +65,41 @@ create_library(
 		Profiler.cpp
 	DEPENDENCIES
 		StopWatch
-	PUBLIC_INCLUDE_DIRECTORIES
-		${VALGRIND_HEADERS} . json/single_include
-	PUBLIC_COMPILE_DEFINITIONS
-		${VALGRIND_DEFINE}
-)
-
-create_executable(
-	NAME
-		example
-	SOURCES
-		example.cpp
-	DEPENDENCIES
-		Profiler
-	PRIVATE_INCLUDE_DIRECTORIES
-		.
-)
-
-create_executable(
-	NAME
-		exampleStl
-	SOURCES
-		exampleStl.cpp
-	DEPENDENCIES
-		Profiler
 	SYSTEM_DEPENDENCIES
-		tbb  # this needs TBB >= 2018, so on Ubuntu <= 18.04 you need to install the latest TBB
-	PRIVATE_INCLUDE_DIRECTORIES
-		.
+		${_profiler_sys_deps}
+	PUBLIC_INCLUDE_DIRECTORIES
+		"${CMAKE_CURRENT_SOURCE_DIR}"
+	PUBLIC_SYSTEM_INCLUDE_DIRECTORIES
+		${_profiler_sys_includes}
+	PUBLIC_COMPILE_DEFINITIONS
+		${_profiler_compile_defs}
 )
+
+if (PROJECT_IS_TOP_LEVEL)
+	create_executable(
+		NAME
+			example
+		SOURCES
+			example.cpp
+		DEPENDENCIES
+			Profiler
+	)
+
+	find_package(TBB QUIET)
+	if (TBB_FOUND)
+		create_executable(
+			NAME
+				exampleStl
+			SOURCES
+				exampleStl.cpp
+			DEPENDENCIES
+				Profiler
+			SYSTEM_DEPENDENCIES
+				TBB::tbb
+		)
+	else()
+		message(STATUS "TBB not found; skipping exampleStl target")
+	endif()
+
+	add_subdirectory(UnitTests)
+endif()

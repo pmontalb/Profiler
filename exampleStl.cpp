@@ -1,11 +1,12 @@
-
 #include <Profiler.h>
 
-#include <array>
-#include <vector>
+#include <algorithm>
+#include <cstddef>
+#include <execution>
+#include <functional>
 #include <iostream>
 #include <random>
-#include <execution>
+#include <vector>
 
 struct Config: public perf::Config {};
 template<typename ContainerT>
@@ -23,6 +24,7 @@ private:
 	inline void RunImpl() noexcept
 	{
 		action(container);
+		perf::DoNotOptimize(container);
 	}
 
 public:
@@ -33,7 +35,7 @@ public:
 
 int main()
 {
-	static constexpr size_t containerSize = { 512 };
+	static constexpr std::size_t containerSize = { 512 };
 
 	Config config {};
 	config.nIterations = 10000;
@@ -47,28 +49,28 @@ int main()
 	const auto rng = [&distribution, &engine]() { return distribution(engine); };
 
 	profiler.container.resize(containerSize);
-	profiler.action = [&rng](auto& container)
+	profiler.action = [&rng](auto& target)
 	{
-		std::generate(std::execution::seq, std::begin(container), std::end(container), rng);
-		std::sort(std::execution::seq, std::begin(container), std::end(container));
+		std::generate(std::execution::seq, std::begin(target), std::end(target), rng);
+		std::sort(std::execution::seq, std::begin(target), std::end(target));
 	};
 
 	profiler.Profile();
 	profiler.PrintPythonPlotInstructions(false, "SEQ - " + std::to_string(containerSize), false);
 
-	profiler.action = [&rng](auto& container)
+	profiler.action = [&rng](auto& target)
 	{
-		std::generate(std::execution::par, std::begin(container), std::end(container), rng);
-		std::sort(std::execution::par, std::begin(container), std::end(container));
+		std::generate(std::execution::par, std::begin(target), std::end(target), rng);
+		std::sort(std::execution::par, std::begin(target), std::end(target));
 	};
 
 	profiler.Profile();
 	profiler.PrintPythonPlotInstructions(false, "PAR - " + std::to_string(containerSize), false);
 
-	profiler.action = [&rng](auto& container)
+	profiler.action = [&rng](auto& target)
 	{
-		std::generate(std::execution::par_unseq, std::begin(container), std::end(container), rng);
-		std::sort(std::execution::par_unseq, std::begin(container), std::end(container));
+		std::generate(std::execution::par_unseq, std::begin(target), std::end(target), rng);
+		std::sort(std::execution::par_unseq, std::begin(target), std::end(target));
 	};
 
 	profiler.Profile();

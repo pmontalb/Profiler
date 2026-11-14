@@ -1,39 +1,48 @@
-
 #include "StopWatch.h"
+
+#ifdef __x86_64__
+	#include <chrono>
+	#include <cpuid.h>
+	#include <thread>
+#endif
 
 namespace sw
 {
+#ifdef __x86_64__
 	namespace detail
 	{
-		static constexpr auto clockId = CLOCK_MONOTONIC_RAW;
-	}
+		static double CalibrateNsPerTick() noexcept
+		{
+			unsigned int eax = 0;
+			unsigned int ebx = 0;
+			unsigned int ecx = 0;
+			unsigned int edx = 0;
 
-	StopWatch::StopWatch(const bool start) noexcept
+			if (__get_cpuid(0x15, &eax, &ebx, &ecx, &edx) != 0 && eax != 0 && ebx != 0 && ecx != 0)
+			{
+				const auto tscHz = (static_cast<double>(ecx) * static_cast<double>(ebx)) / static_cast<double>(eax);
+				return 1e9 / tscHz;
+			}
+
+			// Fallback: calibrate invariant TSC against CLOCK_MONOTONIC_RAW
+			StopWatch wallWatch(true);
+			TscStopWatch tscWatch(true);
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+			tscWatch.Stop();
+			wallWatch.Stop();
+
+			const auto ticks = tscWatch.GetTicks();
+			const auto ns = wallWatch.GetNanoSeconds();
+			assert(ticks > 0 && ns > 0.0);
+			return ns / static_cast<double>(ticks);
+		}
+	}	 // namespace detail
+
+	double TscStopWatch::GetNsPerTick() noexcept
 	{
-		if (start)
-			Start();
+		static const auto nsPerTick = detail::CalibrateNsPerTick();
+		return nsPerTick;
 	}
-
-	void StopWatch::Start() noexcept
-	{
-		[[maybe_unused]] const auto err = clock_gettime(detail::clockId, &_cache);
-		assert(err == 0);
-
-		_start = 1e9 * static_cast<double>(_cache.tv_sec) + static_cast<double>(_cache.tv_nsec);
-	}
-
-	void StopWatch::Stop() noexcept
-	{
-		[[maybe_unused]] const auto err = clock_gettime(detail::clockId, &_cache);
-		assert(err == 0);
-
-		_end = 1e9 * static_cast<double>(_cache.tv_sec) + static_cast<double>(_cache.tv_nsec);
-	}
-
-	void StopWatch::Reset() noexcept
-	{
-		_start = _end = 0.0;
-		Start();
-	}
+#endif
 
 }	 // namespace sw

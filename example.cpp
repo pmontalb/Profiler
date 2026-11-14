@@ -1,13 +1,14 @@
-
 #include <Profiler.h>
 
 #include <array>
+#include <cmath>
+#include <cstddef>
 #include <iostream>
 
 static inline void expensiveFunction(std::array<double, 1000>& ret, const double seed)
 {
 	ret[0] = 1.0;
-	for (size_t i = 1; i < ret.size(); ++i)
+	for (std::size_t i = 1; i < ret.size(); ++i)
 		ret[i] = std::exp(-std::fabs(seed * ret[i - 1]));
 }
 
@@ -32,6 +33,7 @@ private:
 	{
 		cache.fill(0.0);
 		expensiveFunction(cache, 1.0);
+		perf::DoNotOptimize(cache);
 	}
 
 private:
@@ -57,6 +59,7 @@ private:
 	{
 		cache.fill(0.0);
 		expensiveFunction(cache, _config.seed);
+		perf::DoNotOptimize(cache);
 	}
 
 private:
@@ -80,9 +83,9 @@ int main()
 	config2.nWarmUpIterations = 10;
 	Example2 profiler2(config2);
 	profiler2.Profile();
-	profiler2.AverageToString();
-	profiler2.PrintPercentilesCsv();
-	profiler2.PrintPythonPlotInstructions(true, "", true);
+	profiler2.PrintAverage();
+	profiler2.PrintPercentilesCsv(true);
+	profiler2.PrintPythonPlotInstructions(true, "example2", true);
 
 #ifdef HAS_VALGRIND
 	// run with `valgrind --tool=callgrind --instr-atstart=no ./example`
