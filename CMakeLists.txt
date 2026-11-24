@@ -101,5 +101,7 @@ if (PROJECT_IS_TOP_LEVEL)
 		message(STATUS "TBB not found; skipping exampleStl target")
 	endif()
 
-	add_subdirectory(UnitTests)
+	if (CMAKE_TESTING_ENABLED)
+		add_subdirectory(test)
+	endif()
 endif()
