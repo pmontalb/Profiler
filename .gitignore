@@ -5,7 +5,7 @@ cmake-*
 
 # synced files added by CmakeUtilities
 CMakePresets.json
-preset/
+cmake/preset/user/
 IgnoreWarning.h
 .pre-commit-config.yaml
 .clang-format
